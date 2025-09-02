@@ -2,7 +2,7 @@ extern crate glob;
 use clap::{Parser, Subcommand};
 use glob::glob;
 use std::{collections::HashMap, path::PathBuf};
-use sv_parser::{ModuleIdentifier, PackedDimension, RefNode, SyntaxTree, VariableIdentifier, parse_sv, unwrap_locate, unwrap_node};
+use sv_parser::{PackedDimension, RefNode, SyntaxTree, parse_sv, unwrap_locate, unwrap_node};
 use vtags_rust::{get_id, print_identifier};
 
 #[derive(Parser, Debug)]
@@ -18,6 +18,7 @@ enum Commands {
         #[arg(long, help = "Pattern to match SystemVerilog files (e.g., '*.sv' or 'src/**/*.sv')")]
         path_dir: String,
     },
+    //SeparateModules {}
 }
 
 /*
@@ -68,6 +69,12 @@ struct ModuleStruct {
         always_comb/ff begin
             a = b;
         end
+
+    what is a source - provides
+    what is a sink - receives
+
+    A port can be an input/output. If input, it is a sink. If output, it is a source.
+    A net can be a sink/source. If LHS, it is a sink. If RHS it is a source
     */
     signal_connections: Option<HashMap<String, Vec<Connection>>>,
 }
@@ -121,6 +128,7 @@ enum ConnectionType {
     None,
     ToPort,             // connects to module port (upward)
     ToInstance(String), // connects to instance (downward), String is instance name
+    ToNet, //If it connects to another net and not a port or instance
 }
 
 fn main() {
@@ -259,7 +267,6 @@ fn main() {
                                                 };
                                                 //
                                                 if let (Some(port), Some(signal)) = (port_name, signal_name) {
-                                                    //instance.port_connections.as_mut().unwrap().insert(port, signal);
                                                     instance.port_connections.as_mut().unwrap().insert(port, signal);
                                                 }
                                             }
@@ -270,6 +277,7 @@ fn main() {
                         }
                         instances_struct.push(instance);
                     }
+                    //Get wire [x:0] signal_name
                     if let RefNode::NetDeclaration(wires) = module_info {
                         for net in wires {
                             if let RefNode::NetIdentifier(net_name) = net {
@@ -288,6 +296,7 @@ fn main() {
                         }
                         nets_struct.push(nets_netd.clone());
                     }
+                    //Get logic [x:0] signal_name
                     if let RefNode::DataDeclaration(wires) = module_info {
                         for net in wires {
                             if let RefNode::DataType(net_name) = net {
@@ -331,7 +340,7 @@ fn main() {
         }
         module_struct.insert(mod_s.module_name.clone().unwrap_or(String::from("None Module")), mod_s.clone());
     }
-    println!("ModuleStruct so far is {module_struct:#?}");
+    //println!("ModuleStruct so far is {module_struct:#?}");
 }
 
 fn glob_files(path: String, rtl_files: &mut Vec<PathBuf>) {
