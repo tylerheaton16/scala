@@ -1,0 +1,7 @@
+[project]
+name = "python-discovery"
+version = "0.1.0"
+description = "Any python coding related material"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
